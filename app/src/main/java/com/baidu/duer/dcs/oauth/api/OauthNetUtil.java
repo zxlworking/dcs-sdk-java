@@ -39,8 +39,10 @@ public class OauthNetUtil {
         url = url.replace("bdconnect", "http");
         try {
             URL urlParam = new URL(url);
-            ret = CommonUtil.decodeUrl(urlParam.getQuery());
-            ret.putAll(CommonUtil.decodeUrl(urlParam.getRef()));
+            String mQuery = urlParam.getQuery();
+            ret = CommonUtil.decodeUrl(mQuery);
+            String mRef = urlParam.getRef();
+            ret.putAll(CommonUtil.decodeUrl(mRef));
             return ret;
         } catch (MalformedURLException e) {
             return new Bundle();

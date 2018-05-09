@@ -16,6 +16,7 @@
 package com.baidu.duer.dcs.androidapp;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -23,6 +24,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.Window;
 import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -39,6 +41,8 @@ import com.baidu.duer.dcs.framework.DcsFramework;
 import com.baidu.duer.dcs.framework.DeviceModuleFactory;
 import com.baidu.duer.dcs.framework.IResponseListener;
 import com.baidu.duer.dcs.http.HttpConfig;
+import com.baidu.duer.dcs.oauth.api.BaiduOauthImplicitGrant;
+import com.baidu.duer.dcs.oauth.api.ClientCredentialsUtil;
 import com.baidu.duer.dcs.oauth.api.IOauth;
 import com.baidu.duer.dcs.oauth.api.OauthImpl;
 import com.baidu.duer.dcs.systeminterface.IMediaPlayer;
@@ -51,6 +55,7 @@ import com.baidu.duer.dcs.util.NetWorkUtil;
 import com.baidu.duer.dcs.wakeup.WakeUp;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * 主界面 activity
@@ -59,12 +64,15 @@ import java.io.File;
  */
 public class DcsSampleMainActivity extends Activity implements View.OnClickListener {
     public static final String TAG = "DcsDemoActivity";
+    private static final String CLIENT_ID = "SiuEY9PfqdLiesZZ11CXz4M34qgs5low";
+    private static final String CLIENT_SECRET = "616iMgae1fHx4Me22U3kvuaS6ADUbviL";
     private Button voiceButton;
     private TextView textViewTimeStopListen;
     private TextView textViewRenderVoiceInputText;
     private Button pauseOrPlayButton;
     private BaseWebView webView;
     private LinearLayout mTopLinearLayout;
+    private LinearLayout mVoiceLinearLayouut;
     private DcsFramework dcsFramework;
     private DeviceModuleFactory deviceModuleFactory;
     private IPlatformFactory platformFactory;
@@ -75,20 +83,29 @@ public class DcsSampleMainActivity extends Activity implements View.OnClickListe
     // 唤醒
     private WakeUp wakeUp;
 
+    private ProgressDialog mSpinner;
+
+    private boolean isAuthorizing = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dcs_sample_activity_main);
         initView();
-        initOauth();
-        initFramework();
+
+        doClientCredentialsAuthorize();
     }
 
     private void initView() {
+        mSpinner = new ProgressDialog(this);
+        mSpinner.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        mSpinner.setMessage("登录中...");
+
         Button openLogBtn = (Button) findViewById(R.id.openLogBtn);
         openLogBtn.setOnClickListener(this);
         voiceButton = (Button) findViewById(R.id.voiceBtn);
         voiceButton.setOnClickListener(this);
+        mVoiceLinearLayouut = (LinearLayout) findViewById(R.id.voiceLinearLayouut);
 
         textViewTimeStopListen = (TextView) findViewById(R.id.id_tv_time_0);
         textViewRenderVoiceInputText = (TextView) findViewById(R.id.id_tv_RenderVoiceInputText);
@@ -129,6 +146,66 @@ public class DcsSampleMainActivity extends Activity implements View.OnClickListe
         mPreviousSongBtn.setOnClickListener(this);
         pauseOrPlayButton.setOnClickListener(this);
         mNextSongBtn.setOnClickListener(this);
+    }
+
+    private void doClientCredentialsAuthorize(){
+        if(isAuthorizing){
+            return;
+        }
+        isAuthorizing = true;
+
+        if (!NetWorkUtil.isNetworkConnected(this)) {
+            Toast.makeText(this,
+                    getResources().getString(R.string.err_net_msg),
+                    Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        mSpinner.show();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                BaiduOauthImplicitGrant baiduOauthImplicitGrant = new BaiduOauthImplicitGrant(DcsSampleMainActivity.this.getApplication(),CLIENT_ID,CLIENT_SECRET);
+                try {
+                    baiduOauthImplicitGrant.clientCredentialsAuthorize(new ClientCredentialsUtil.AuthorizeListener() {
+                        @Override
+                        public void onComplete(Bundle values) {
+                            LogUtil.d(TAG, "clientCredentialsAuthorize::onComplete");
+                            isAuthorizing = false;
+
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    initOauth();
+                                    initFramework();
+                                    Toast.makeText(DcsSampleMainActivity.this.getApplicationContext(),getResources().getString(R.string.login_succeed),Toast.LENGTH_SHORT).show();
+                                    mSpinner.dismiss();
+                                    mVoiceLinearLayouut.setVisibility(View.VISIBLE);
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onError() {
+                            LogUtil.d(TAG, "clientCredentialsAuthorize::onError");
+                            isAuthorizing = false;
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(DcsSampleMainActivity.this.getApplicationContext(),getResources().getString(R.string.request_error),Toast.LENGTH_SHORT).show();
+                                    mSpinner.dismiss();
+                                    finish();
+                                }
+                            });
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     private void initFramework() {

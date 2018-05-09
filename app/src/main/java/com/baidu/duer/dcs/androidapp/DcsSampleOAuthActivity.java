@@ -29,7 +29,10 @@ import com.baidu.duer.dcs.oauth.api.BaiduDialog;
 import com.baidu.duer.dcs.oauth.api.BaiduDialogError;
 import com.baidu.duer.dcs.oauth.api.BaiduException;
 import com.baidu.duer.dcs.oauth.api.BaiduOauthImplicitGrant;
+import com.baidu.duer.dcs.oauth.api.ClientCredentialsUtil;
 import com.baidu.duer.dcs.util.LogUtil;
+
+import java.io.IOException;
 
 /**
  * 用户认证界面
@@ -37,9 +40,11 @@ import com.baidu.duer.dcs.util.LogUtil;
  * Created by zhangyan42@baidu.com on 2017/5/18.
  */
 public class DcsSampleOAuthActivity extends Activity implements View.OnClickListener {
+    private static final String LOG_TAG = "DcsSampleOAuthActivity";
     // 需要开发者自己申请client_id
     // client_id，就是oauth的client_id
-    private static final String CLIENT_ID = "{{placeholder for your client_id}}";
+    private static final String CLIENT_ID = "SiuEY9PfqdLiesZZ11CXz4M34qgs5low";
+    private static final String CLIENT_SECRET = "616iMgae1fHx4Me22U3kvuaS6ADUbviL";
     // 是否每次授权都强制登陆
     private boolean isForceLogin = false;
     // 是否每次都确认登陆
@@ -110,6 +115,7 @@ public class DcsSampleOAuthActivity extends Activity implements View.OnClickList
                             getResources().getString(R.string.client_id_empty),
                             Toast.LENGTH_SHORT).show();
                 }
+
                 break;
             default:
                 break;

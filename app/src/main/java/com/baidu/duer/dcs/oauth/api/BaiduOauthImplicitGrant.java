@@ -30,6 +30,8 @@ import com.baidu.duer.dcs.oauth.api.BaiduDialog.BaiduDialogListener;
 import com.baidu.duer.dcs.util.CommonUtil;
 import com.baidu.duer.dcs.util.LogUtil;
 
+import java.io.IOException;
+
 /**
  * 封装了oauth2授权，我们采用的是百度Oauth的implicit grant的方式
  * 该方式的地址：http://developer.baidu.com/wiki/index.php?title=docs/oauth/implicit
@@ -53,6 +55,7 @@ public class BaiduOauthImplicitGrant implements Parcelable {
     private static final String KEY_CLIENT_ID = "clientId";
     // 应用注册的api key信息
     private String cliendId;
+    private String clientSecret;
     private AccessTokenManager accessTokenManager;
 
     /**
@@ -66,6 +69,21 @@ public class BaiduOauthImplicitGrant implements Parcelable {
             throw new IllegalArgumentException("apiKey信息必须提供！");
         }
         this.cliendId = clientId;
+        init(context);
+    }
+
+    /**
+     * 使用应用的基本信息构建Baidu对象
+     *
+     * @param clientId 应用注册的api key信息
+     * @param context  当前应用的上下文环境
+     */
+    public BaiduOauthImplicitGrant(Context context,String clientId, String clientSecret) {
+        if (TextUtils.isEmpty(clientId) || TextUtils.isEmpty(clientSecret)) {
+            throw new IllegalArgumentException("apiKey信息必须提供！");
+        }
+        this.cliendId = clientId;
+        this.clientSecret = clientSecret;
         init(context);
     }
 
@@ -109,6 +127,10 @@ public class BaiduOauthImplicitGrant implements Parcelable {
                           boolean isConfirmLogin,
                           final BaiduDialogListener listener) {
         this.authorize(activity, null, isForceLogin, isConfirmLogin, listener);
+    }
+
+    public void clientCredentialsAuthorize(ClientCredentialsUtil.AuthorizeListener listener) throws IOException {
+        ClientCredentialsUtil.authorize(cliendId,clientSecret,getAccessTokenManager(),listener);
     }
 
     /**
